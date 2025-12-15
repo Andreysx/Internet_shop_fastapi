@@ -1,0 +1,9 @@
+/media/
+/static/
+/pycache/
+*.sqlite3
+*.log
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
