@@ -1,6 +1,5 @@
 /media/
 /static/
-/pycache/
 *.sqlite3
 *.log
 *.pyc
