@@ -28,6 +28,7 @@ class Category(BaseModel):
     parent_id: int | None = Field(default=None, description="ID родительской категории, если есть")
     is_active: bool = Field(..., description="Активность категории")
 
+    # Настройка ConfigDict(from_attributes=True) обеспечивает совместимость с ORM, позволяя преобразовывать данные из базы в JSON-ответы.
     model_config = ConfigDict(from_attributes=True)
 
 
