@@ -3,7 +3,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models.categories import Category as CategoryModel
-from app.schemas import Category as CategorySchema, CategoryCreate
+from app.schemas import Category as CategorySchema, CategoryCreate as CategoryCreateSchema
 from app.db_depends import get_db
 
 # класс APIRouter позволяет:
@@ -31,7 +31,7 @@ async def get_all_categories(db: Session = Depends(get_db)):
 
 
 @router.post(path="/", response_model=CategorySchema, status_code=status.HTTP_201_CREATED)
-async def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+async def create_category(category: CategoryCreateSchema, db: Session = Depends(get_db)):
     """
     Создает новую категорию.
     """
@@ -51,7 +51,7 @@ async def create_category(category: CategoryCreate, db: Session = Depends(get_db
 
 
 @router.put(path="/{category_id}", response_model=CategorySchema)
-async def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
+async def update_category(category_id: int, category: CategoryCreateSchema, db: Session = Depends(get_db)):
     """
     Обновляет категорию по её ID
     """
