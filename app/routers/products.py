@@ -106,7 +106,7 @@ async def update_product(product_id: int, product: ProductCreateSchema, db: Sess
     if db_category is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
 
-    # Обновление товара в БД
+    # Обновление товара в БД именно из данных полученных при создании Pydantic-модели product: ProductCreateSchema, а не из результата запроса к базе(db_product)
     db.execute(update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump()))
     db.commit()
     db.refresh(db_product)
