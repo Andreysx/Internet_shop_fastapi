@@ -1,7 +1,8 @@
 #модуль настройки подключения базы данных
+#Синхронное подключение к SQlite
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import sessionmaker
 
 # Строка подключения для SQLite
 #/// для относительного пути к файлу ecommerce.db
@@ -31,6 +32,31 @@ SessionLocal = sessionmaker(bind=engine)
 
 #Определение базового класса для моделей данных(таблиц в бд)
 #Базовый класс Base — это основа для создания моделей SQLAlchemy, которые представляют таблицы базы данных.
+# class Base(DeclarativeBase):
+#     pass
+
+
+# --------------- Асинхронное подключение к PostgreSQL -------------------------
+
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import DeclarativeBase
+
+
+# Строка подключения для PostgreSQl
+DATABASE_URL = "postgresql+asyncpg://ecommerce_user:12345@localhost:5432/ecommerce_db"
+
+# Создаём Engine асинхронное взаимодействие с БД
+#Параметр echo=True включает логирование SQL-запросов в консоль
+async_engine = create_async_engine(DATABASE_URL, echo=True)
+
+# Настраиваем фабрику сеансов
+# Фабрика сессий async_session_maker создаётся с помощью async_sessionmaker, которая настроена для использования AsyncSession —
+# асинхронного аналога синхронной Session. expire_on_commit=False — параметр в SQLAlchemy, который отключает «устаревание» (expiration) объектов, хранимых в сессии.
+# По умолчанию expire_on_commit=True и после вызова commit() все объекты, которые были изменены в сессии, помечаются как «устаревшие».
+# Это означает, что при следующем обращении к этим объектам они будут автоматически перезагружены из базы данных.
+async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
+
+
 class Base(DeclarativeBase):
     pass
 
