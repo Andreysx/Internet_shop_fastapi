@@ -26,6 +26,9 @@ async def get_all_categories(db: AsyncSession = Depends(get_async_db)):
     """
     Возвращает список всех активных категорий товаров.
     """
+    #Метод db.scalars() в AsyncSession возвращает корутину, которая выполняет SQL-запрос асинхронно и возвращает объект ScalarResult,
+    # содержащий скалярные значения (например, объекты CategoryModel). await ожидает завершения запроса, позволяя событийному циклу обрабатывать другие задачи,
+    # пока PostgreSQL выполняет запрос. После await мы получаем ScalarResult, на котором можно вызвать all() для получения списка объектов.
     result = await db.scalars(select(CategoryModel).where(CategoryModel.is_active == True))
     categories = result.all()
     return categories
