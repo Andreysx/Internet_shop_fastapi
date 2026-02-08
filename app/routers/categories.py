@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.categories import Category as CategoryModel
@@ -39,7 +39,7 @@ async def create_category(category: CategoryCreateSchema, db: AsyncSession = Dep
     """
     Создает новую категорию.
     """
-    # методы, такие как db.scalars(), db.commit(), и db.refresh(), являются асинхронными, что значит,
+    # методы, такие как db.scalars(), db.commit(),  db.refresh(), db.execute(), являются асинхронными, что значит,
     # что их вызов возвращает корутину (объект, который может быть awaited), а не результат.
     # await заставляет код приостановиться, пока операция не завершится, но без блокировки всего потока
     # Проверка существования parent_id, если указан
