@@ -10,7 +10,7 @@ from app.db_depends import get_async_db
 from app.auth import get_current_seller
 
 # from fastapi import APIRouter – класс для создания маршрутизатора.
-
+# Аутентификация выполняется через JWT, а авторизация — через проверку роли и владения
 # Создаем маршрутизатор для товаров
 router = APIRouter(prefix="/products", tags=["products"])
 

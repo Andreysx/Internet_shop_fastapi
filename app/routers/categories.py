@@ -4,8 +4,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.categories import Category as CategoryModel
+from app.models.users import User as UserModel
 from app.schemas import Category as CategorySchema, CategoryCreate as CategoryCreateSchema
 from app.db_depends import get_db, get_async_db
+from app.auth import is_admin
 
 # класс APIRouter позволяет:
 # Инструмент для создания подгрупп маршрутов
@@ -26,7 +28,7 @@ async def get_all_categories(db: AsyncSession = Depends(get_async_db)):
     """
     Возвращает список всех активных категорий товаров.
     """
-    #Метод db.scalars() в AsyncSession возвращает корутину, которая выполняет SQL-запрос асинхронно и возвращает объект ScalarResult,
+    # Метод db.scalars() в AsyncSession возвращает корутину, которая выполняет SQL-запрос асинхронно и возвращает объект ScalarResult,
     # содержащий скалярные значения (например, объекты CategoryModel). await ожидает завершения запроса, позволяя событийному циклу обрабатывать другие задачи,
     # пока PostgreSQL выполняет запрос. После await мы получаем ScalarResult, на котором можно вызвать all() для получения списка объектов.
     result = await db.scalars(select(CategoryModel).where(CategoryModel.is_active == True))
@@ -35,7 +37,9 @@ async def get_all_categories(db: AsyncSession = Depends(get_async_db)):
 
 
 @router.post(path="/", response_model=CategorySchema, status_code=status.HTTP_201_CREATED)
-async def create_category(category: CategoryCreateSchema, db: AsyncSession = Depends(get_async_db)):
+async def create_category(category: CategoryCreateSchema,
+                          db: AsyncSession = Depends(get_async_db),
+                          admin: UserModel = Depends(is_admin)):
     """
     Создает новую категорию.
     """
@@ -66,7 +70,10 @@ async def create_category(category: CategoryCreateSchema, db: AsyncSession = Dep
 
 
 @router.put(path="/{category_id}", response_model=CategorySchema)
-async def update_category(category_id: int, category: CategoryCreateSchema, db: AsyncSession = Depends(get_async_db)):
+async def update_category(category_id: int,
+                          category: CategoryCreateSchema,
+                          db: AsyncSession = Depends(get_async_db),
+                          admin: UserModel = Depends(is_admin)):
     """
     Обновляет категорию по её ID
     """
@@ -104,7 +111,9 @@ async def update_category(category_id: int, category: CategoryCreateSchema, db: 
 
 
 @router.delete(path="/{category_id}", response_model=CategorySchema, status_code=status.HTTP_200_OK)
-async def delete_category(category_id: int, db: AsyncSession = Depends(get_async_db)):
+async def delete_category(category_id: int,
+                          db: AsyncSession = Depends(get_async_db),
+                          admin: UserModel = Depends(is_admin)):
     """
     Выполняет мягкое удаление(логическое и возвращает категорию) категории по её ID, устанавливая is_active = False.
     """

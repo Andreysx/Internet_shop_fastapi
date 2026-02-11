@@ -16,6 +16,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # время действия токена (ACCESS_TOKEN_EXPIRE_MINUTES) ограничивает период, в течение которого токен может быть использован
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
+
+
 # создаём объект OAuth2, который указывает, что эндпоинт логина находится по адресу /users/token. FastAPI ожидает токен в заголовке Authorization: Bearer для защищённых эндпоинтов.
 
 
@@ -80,4 +82,10 @@ async def get_current_seller(current_user: UserModel = Depends(get_current_user)
     """
     if current_user.role != "seller":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only sellers can perform this action")
+    return current_user
+
+
+async def is_admin(current_user: UserModel = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don`t have permission")
     return current_user
