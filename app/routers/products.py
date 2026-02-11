@@ -4,8 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.products import Product as ProductModel
 from app.models.categories import Category as CategoryModel
+from app.models.users import User as UserModel
 from app.schemas import Product as ProductSchema, ProductCreate as ProductCreateSchema
 from app.db_depends import get_async_db
+from app.auth import get_current_seller
 
 # from fastapi import APIRouter – класс для создания маршрутизатора.
 
@@ -33,9 +35,11 @@ async def get_all_products(db: AsyncSession = Depends(get_async_db)):
 
 
 @router.post(path="/", response_model=ProductSchema, status_code=status.HTTP_201_CREATED)
-async def create_product(product: ProductCreateSchema, db: AsyncSession = Depends(get_async_db)):
+async def create_product(product: ProductCreateSchema,
+                         db: AsyncSession = Depends(get_async_db),
+                         current_user: UserModel = Depends(get_current_seller)):
     """
-    Создаёт новый товар
+    Создаёт новый товар, привязанный к текущему продавцу (только для 'seller').
     """
     # Проверка существования и активности категории
 
@@ -48,7 +52,7 @@ async def create_product(product: ProductCreateSchema, db: AsyncSession = Depend
     # Создание нового продукта в БД
     # model_dump() - pydantic -> dict
     # model_dump_json() pydantic - json_string
-    db_product = ProductModel(**product.model_dump())
+    db_product = ProductModel(**product.model_dump(), seller_id=current_user.id)
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)
@@ -92,9 +96,12 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_async_db))
 
 
 @router.put(path="/{product_id}", response_model=ProductSchema, status_code=status.HTTP_200_OK)
-async def update_product(product_id: int, product: ProductCreateSchema, db: AsyncSession = Depends(get_async_db)):
+async def update_product(product_id: int,
+                         product: ProductCreateSchema,
+                         db: AsyncSession = Depends(get_async_db),
+                         current_user: UserModel = Depends(get_current_seller)):
     """
-    Обновляет товар по его ID.
+    Обновляет товар, если он принадлежит текущему продавцу (только для 'seller')
     """
     product_result = await db.scalars(
         select(ProductModel).where(ProductModel.id == product_id, ProductModel.is_active == True))
@@ -104,6 +111,8 @@ async def update_product(product_id: int, product: ProductCreateSchema, db: Asyn
     if not db_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
+    if db_product.seller_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own products")
     # Проверка НОВОЙ переданной категории в category_id - product(ProductCreateSchema)
     category_result = await db.scalars(select(CategoryModel).where(CategoryModel.id == product.category_id,
                                                                    CategoryModel.is_active == True))
@@ -119,14 +128,16 @@ async def update_product(product_id: int, product: ProductCreateSchema, db: Asyn
         update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump())
     )
     await db.commit()
-    await db.refresh(db_product)
+    await db.refresh(db_product)  # Для консистентности данных
     return db_product
 
 
 @router.delete("/{product_id}", response_model=ProductSchema, status_code=status.HTTP_200_OK)
-async def delete_product(product_id: int, db: AsyncSession = Depends(get_async_db)):
+async def delete_product(product_id: int,
+                         db: AsyncSession = Depends(get_async_db),
+                         current_user: UserModel = Depends(get_current_seller)):
     """
-    Выполняет мягкое удаление(логическое и возвращает товар) товар по её ID, устанавливая is_active = False.
+    Выполняет мягкое удаление(логическое и возвращает товар) товар по её ID, устанавливая is_active = False, если он принадлежит текущему продавцу (только для 'seller').
     """
     product_result = await db.scalars(
         select(ProductModel).where(ProductModel.id == product_id, ProductModel.is_active == True))
@@ -134,11 +145,12 @@ async def delete_product(product_id: int, db: AsyncSession = Depends(get_async_d
     product = product_result.first()
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found or inactive")
-
+    if product.seller_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own products")
     # # db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active=False))
     # db.commit()
     await db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active=False))
     # product.is_active = False  # напрямую обращаемся к полю ORM объекта
     await db.commit()
-    await db.refresh(product)
+    await db.refresh(product)  # Для возврата is_active = False
     return product
