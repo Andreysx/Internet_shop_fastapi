@@ -132,7 +132,7 @@ async def update_product(product_id: int,
     return db_product
 
 
-@router.delete("/{product_id}", response_model=ProductSchema, status_code=status.HTTP_200_OK)
+@router.delete(path="/{product_id}", response_model=ProductSchema, status_code=status.HTTP_200_OK)
 async def delete_product(product_id: int,
                          db: AsyncSession = Depends(get_async_db),
                          current_user: UserModel = Depends(get_current_seller)):

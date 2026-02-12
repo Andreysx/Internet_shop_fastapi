@@ -87,5 +87,5 @@ async def get_current_seller(current_user: UserModel = Depends(get_current_user)
 
 async def is_admin(current_user: UserModel = Depends(get_current_user)):
     if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don`t have permission")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin can perform this action")
     return current_user
