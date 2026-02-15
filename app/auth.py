@@ -38,6 +38,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict):
     """
+    stateless реализация
     Создаёт access-токен JWT с payload (sub, role, id, exp) с коротким сроком действия.
     """
     to_encode = data.copy()
