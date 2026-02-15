@@ -65,13 +65,14 @@ class Product(BaseModel):
 class UserCreate(BaseModel):
     email: EmailStr = Field(description="Email пользователя")
     password: str = Field(max_length=8, description="Пароль (минимум 8 символов)")
-    #тобы случайно где-нибудь не засветить пароль (в том числе в логах), можно аннотировать его в модели UserCreate как SecretStr.
+    # тобы случайно где-нибудь не засветить пароль (в том числе в логах), можно аннотировать его в модели UserCreate как SecretStr.
     # Тогда доступ к значению нужно будет осуществлять через user.password.get_secret_value().
     role: str = Field(default="buyer", pattern="^(buyer|seller)", description="Роль: 'buyer' или 'seller")
 
 
 class UserRoleUpdate(BaseModel):
     role: str = Field(pattern="^(buyer|seller|admin)$", description="Новая роль")
+
 
 class User(BaseModel):
     id: int
@@ -81,8 +82,5 @@ class User(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-
-
-
-
-
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
