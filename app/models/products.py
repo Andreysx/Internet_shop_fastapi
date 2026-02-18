@@ -22,4 +22,4 @@ class Product(Base):
     #Ограничение ForeignKey обеспечивает целостность данных, не позволяя привязывать товары к несуществующим пользователям.
     category: Mapped["Category"] = relationship("Category", back_populates="products")
     seller: Mapped["User"] = relationship("User", back_populates="products")
-    reviews: Mapped[list["Reviews"]] = relationship("Reviews", back_populates="product")
+    reviews: Mapped[list["Review"]] = relationship("Review", back_populates="product")

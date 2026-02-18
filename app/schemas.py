@@ -56,6 +56,7 @@ class Product(BaseModel):
     description: str | None = Field(default=None, description="Описание товара")
     price: Decimal = Field(..., description="Цена товара в рублях", gt=0, decimal_places=2)
     image_url: str | None = Field(default=None, description="URL изображение товара")
+    rating: float = Field(..., description="Оценка товара")
     stock: int = Field(..., description="Количество товара на складе")
     category_id: int = Field(..., description="ID категории")
     is_active: bool = Field(..., description="Активность товара")
@@ -88,8 +89,8 @@ class RefreshTokenRequest(BaseModel):
 
 
 class CreateReview(BaseModel):
-    product_id: str = Field(..., description="ID товара, к которому относится отзыв")
-    comment: str | None = Field(None, min_length=10, description="Текст отзыва")
+    product_id: int = Field(..., description="ID товара, к которому относится отзыв")
+    comment: str | None = Field(None, max_length=500, description="Текст отзыва")
     grade: int = Field(..., ge=1, le=5, description="Оценка товара(1-5)")
 
 
@@ -97,7 +98,7 @@ class Review(BaseModel):
     id: int = Field(..., description="Уникальный идентификатор отзыва")
     comment: str = Field(..., description="Текст отзыва")
     comment_date: datetime = Field(..., description="Дата и время создания отзыва")
-    grade: int = Field(...,ge=1, le=5, description="Оценка товара")
+    grade: int = Field(..., ge=1, le=5, description="Оценка товара")
     is_active: bool = Field(..., description="Активность отзыва")
     user_id: int = Field(..., description="ID пользователя")
     product_id: int = Field(..., description="ID товара")
