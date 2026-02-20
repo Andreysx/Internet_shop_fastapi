@@ -28,8 +28,7 @@ async def get_all_products(page: int = Query(1, ge=1),
                            seller_id: int | None = Query(None, description="ID продавца для фильтрации"),
                            db: AsyncSession = Depends(get_async_db)):
     """
-    Возвращает список всех активных товаров с поддержкой пагинации и фильтрации(фильтры применяются только при наличии соответствующих параметров запроса,
-    что оптимизирует производительность. И ненужные условия не включаются в SQL-запрос, минимизируя нагрузку на базу данных.)
+    Возвращает список всех активных товаров с поддержкой пагинации, фильтрации(динамические фильтры) и полнотекстового поиска PostgreSQL FTS(name,descriprion)
     """
     # Проверка логики min_price <= max_price
     if min_price is not None and max_price is not None and min_price > max_price:
