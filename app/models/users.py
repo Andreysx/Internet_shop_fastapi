@@ -15,4 +15,6 @@ class User(Base):
 
     products: Mapped[list["Product"]] = relationship("Product", back_populates="seller")
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="buyer")
+    #cascade="all, delete-orphan" гарантирует, что при удалении пользователя его корзина будет очищена
+    cart_items: Mapped[list["CartItem"]] = relationship("CartItem", back_populates="user", cascade="all, delete-orphan")
 
