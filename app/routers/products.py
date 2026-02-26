@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import UploadFile, File, Form
 from sqlalchemy.sql import select, update, func, desc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,21 +11,66 @@ from app.db_depends import get_async_db
 from app.auth import get_current_seller
 from datetime import datetime
 
+from pathlib import Path
+import uuid
+
 # from fastapi import APIRouter – класс для создания маршрутизатора.
 # Аутентификация выполняется через JWT, а авторизация — через проверку роли и владения
 # Создаем маршрутизатор для товаров
 router = APIRouter(prefix="/products", tags=["products"])
 
-#Вынести параметры запроса в pydantic модель валидации, сделать обработку даты
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+MEDIA_ROOT = BASE_DIR / "media" / "products"
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_IMAGE_SIZE = 2 * 1024 * 1024  # 2 097 152 байт
+
+
+async def save_product_image(file: UploadFile) -> str:
+    """
+    Сохраняет изображение товара и возвращает относительный URL по которому это изображение будет доступно через веб-сервер.
+    """
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only JPG, PNG or WebP images are allowed")
+    content = await file.read()
+    if len(content) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image is too large")
+    extensions = Path(file.filename or "").suffix.lower() or ".jpg"
+    file_name = f"{uuid.uuid4()}{extensions}"
+    file_path = MEDIA_ROOT / file_name
+    file_path.write_bytes(content)
+
+    return f"/media/products/{file_name}"
+
+
+def remove_product_image(url: str | None) -> None:
+    """
+    Удаляет файл изображения, если он существует.
+    """
+    if not url:
+        return
+    relative_path = url.lstrip("/")
+    file_path = BASE_DIR / relative_path
+    if file_path.exists():
+        file_path.unlink()
+
+
+
+
+# Вынести параметры запроса в pydantic модель валидации, сделать обработку даты
 @router.get(path="/", response_model=ProductList, status_code=status.HTTP_200_OK)
 async def get_all_products(page: int = Query(1, ge=1),
                            page_size: int = Query(20, ge=1, le=100),
                            category_id: int | None = Query(None, description="ID категории для фильтрации"),
                            search: str | None = Query(None, min_length=1, description="Поиск по названию/описанию"),
-                           min_price: float | None = Query(None, ge=0, description="Минимальная цена товара для фильтрации"),
-                           max_price: float | None = Query(None, ge=0, description="Максимальная цена товара для фильтрации"),
-                           in_stock: bool | None = Query(None, description="true -только товары в наличии, false - только без остатка для фильтрации"),
-                           created_at: datetime | None = Query(None, description="Дата создания товара и время YYYY-MM-DD HH:MM:SS"),
+                           min_price: float | None = Query(None, ge=0,
+                                                           description="Минимальная цена товара для фильтрации"),
+                           max_price: float | None = Query(None, ge=0,
+                                                           description="Максимальная цена товара для фильтрации"),
+                           in_stock: bool | None = Query(None,
+                                                         description="true -только товары в наличии, false - только без остатка для фильтрации"),
+                           created_at: datetime | None = Query(None,
+                                                               description="Дата создания товара и время YYYY-MM-DD HH:MM:SS"),
                            seller_id: int | None = Query(None, description="ID продавца для фильтрации"),
                            db: AsyncSession = Depends(get_async_db)):
     """
