@@ -55,8 +55,6 @@ def remove_product_image(url: str | None) -> None:
         file_path.unlink()
 
 
-
-
 # Вынести параметры запроса в pydantic модель валидации, сделать обработку даты
 @router.get(path="/", response_model=ProductList, status_code=status.HTTP_200_OK)
 async def get_all_products(page: int = Query(1, ge=1),
@@ -149,7 +147,8 @@ async def get_all_products(page: int = Query(1, ge=1),
 
 
 @router.post(path="/", response_model=ProductSchema, status_code=status.HTTP_201_CREATED)
-async def create_product(product: ProductCreateSchema,
+async def create_product(product: ProductCreateSchema = Depends(ProductCreateSchema.as_form),
+                         image: UploadFile | None = File(None),
                          db: AsyncSession = Depends(get_async_db),
                          current_user: UserModel = Depends(get_current_seller)):
     """
@@ -163,10 +162,11 @@ async def create_product(product: ProductCreateSchema,
     if category is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
 
+    image_url = await save_product_image(image) if image else None
     # Создание нового продукта в БД
     # model_dump() - pydantic -> dict
     # model_dump_json() pydantic - json_string
-    db_product = ProductModel(**product.model_dump(), seller_id=current_user.id)
+    db_product = ProductModel(**product.model_dump(), seller_id=current_user.id, image_url=image_url)
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)
@@ -211,7 +211,8 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_async_db))
 
 @router.put(path="/{product_id}", response_model=ProductSchema, status_code=status.HTTP_200_OK)
 async def update_product(product_id: int,
-                         product: ProductCreateSchema,
+                         product: ProductCreateSchema = Depends(ProductCreateSchema.as_form),
+                         image: UploadFile | None = File(None),
                          db: AsyncSession = Depends(get_async_db),
                          current_user: UserModel = Depends(get_current_seller)):
     """
@@ -241,6 +242,11 @@ async def update_product(product_id: int,
     await db.execute(
         update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump())
     )
+
+    if image:
+        remove_product_image(db_product.image_url)
+        db_product.image_url = await save_product_image(image)
+
     await db.commit()
     await db.refresh(db_product)  # Для консистентности данных
     return db_product
@@ -265,6 +271,8 @@ async def delete_product(product_id: int,
     # db.commit()
     await db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active=False))
     # product.is_active = False  # напрямую обращаемся к полю ORM объекта
+    remove_product_image(product.image_url)
+
     await db.commit()
     await db.refresh(product)  # Для возврата is_active = False
     return product
