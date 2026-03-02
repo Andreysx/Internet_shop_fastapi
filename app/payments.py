@@ -28,7 +28,7 @@ async def create_yookassa_payment(
     Configuration.account_id = YOOKASSA_SHOP_ID
     Configuration.secret_key = YOOKASSA_SECRET_KEY
 
-
+    # JSON для POST /v3/payments
     payload = {
         "amount": {
             "value": f"{amount:.2f}",
@@ -43,7 +43,7 @@ async def create_yookassa_payment(
         "metadata": {
             "order_id": order_id,
         },
-        "receipt": {
+        "receipt": { # ФИСКальный ЧЕК (обязателен по 54-ФЗ для РФ!)
             "customer": {
                 "email": user_email,
             },
@@ -55,9 +55,9 @@ async def create_yookassa_payment(
                         "value": f"{amount:.2f}",
                         "currency": "RUB",
                     },
-                    "vat_code": 1,
-                    "payment_mode": "full_prepayment",
-                    "payment_subject": "commodity",
+                    "vat_code": 1, # НДС: 1=без НДС (0%), 2=0%, 3=10%, 4=20%, 5=расчетный, 6=спецрежим
+                    "payment_mode": "full_prepayment", # Режим: полная предоплата
+                    "payment_subject": "commodity", # Тип: "service"=услуга, "commodity"=товар или заказ
                 },
             ],
         },
