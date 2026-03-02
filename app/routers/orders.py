@@ -136,3 +136,24 @@ async def get_order(order_id: int, db: AsyncSession = Depends(get_async_db),
     if not order or order.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
+
+
+@router.get(path="/{order_id}/status", status_code=status.HTTP_200_OK)
+async def get_order_status(order_id: int, db: AsyncSession = Depends(get_async_db),
+                           current_user: UserModel = Depends(get_current_user)):
+    """Возвращает краткую информацию о заказе и его статус"""
+    order_result = await db.scalars(select(OrderModel).where(OrderModel.id == order_id))
+    order = order_result.first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if order.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+    if order.status == "paid":
+        message = f"Спасибо! Заказ {order.id} оплачен! Ожидайте доставку."
+    elif order.status in ["canceled", "failed"]:
+        message = "Оплата не прошла. Попробуйте еще раз"
+    else:
+        message = "Оплата в процессе"
+
+    return {"order_id": order.id, "status": order.status,
+            "paid_at": order.paid_at, "message": message}
