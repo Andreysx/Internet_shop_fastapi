@@ -14,9 +14,6 @@ from datetime import datetime
 from pathlib import Path
 import uuid
 
-# from fastapi import APIRouter – класс для создания маршрутизатора.
-# Аутентификация выполняется через JWT, а авторизация — через проверку роли и владения
-# Создаем маршрутизатор для товаров
 router = APIRouter(prefix="/products", tags=["products"])
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -154,7 +151,6 @@ async def create_product(product: ProductCreateSchema = Depends(ProductCreateSch
     """
     Создаёт новый товар, привязанный к текущему продавцу (только для 'seller').
     """
-    # Проверка существования и активности категории
 
     category_result = await db.scalars(
         select(CategoryModel).where(CategoryModel.id == product.category_id, CategoryModel.is_active == True))
@@ -163,9 +159,6 @@ async def create_product(product: ProductCreateSchema = Depends(ProductCreateSch
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
 
     image_url = await save_product_image(image) if image else None
-    # Создание нового продукта в БД
-    # model_dump() - pydantic -> dict
-    # model_dump_json() pydantic - json_string
     db_product = ProductModel(**product.model_dump(), seller_id=current_user.id, image_url=image_url)
     db.add(db_product)
     await db.commit()
@@ -222,13 +215,12 @@ async def update_product(product_id: int,
         select(ProductModel).where(ProductModel.id == product_id, ProductModel.is_active == True))
     db_product = product_result.first()
 
-    # Проверка существует ли товар и активен ли он через запрос к бд
     if not db_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
     if db_product.seller_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own products")
-    # Проверка НОВОЙ переданной категории в category_id - product(ProductCreateSchema)
+
     category_result = await db.scalars(select(CategoryModel).where(CategoryModel.id == product.category_id,
                                                                    CategoryModel.is_active == True))
     db_category = category_result.first()
@@ -236,9 +228,6 @@ async def update_product(product_id: int,
     if db_category is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category not found or inactive")
 
-    # Обновление товара в БД именно из данных полученных при создании Pydantic-модели product: ProductCreateSchema, а не из результата запроса к базе(db_product)
-    # update_data = product.model_dump(exclude_unset=True)
-    # await db.execute(update(ProductModel).where(ProductModel.id == product_id).values(**update_data))
     await db.execute(
         update(ProductModel).where(ProductModel.id == product_id).values(**product.model_dump())
     )
@@ -261,18 +250,14 @@ async def delete_product(product_id: int,
     """
     product_result = await db.scalars(
         select(ProductModel).where(ProductModel.id == product_id, ProductModel.is_active == True))
-    # Метод first() возвращает первый результат запроса или None, если результат пустой.
     product = product_result.first()
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found or inactive")
     if product.seller_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own products")
-    # # db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active=False))
-    # db.commit()
     await db.execute(update(ProductModel).where(ProductModel.id == product_id).values(is_active=False))
-    # product.is_active = False  # напрямую обращаемся к полю ORM объекта
     remove_product_image(product.image_url)
 
     await db.commit()
-    await db.refresh(product)  # Для возврата is_active = False
+    await db.refresh(product)
     return product

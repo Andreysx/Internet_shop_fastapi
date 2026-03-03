@@ -9,17 +9,7 @@ from app.schemas import Category as CategorySchema, CategoryCreate as CategoryCr
 from app.db_depends import get_db, get_async_db
 from app.auth import is_admin
 
-# класс APIRouter позволяет:
-# Инструмент для создания подгрупп маршрутов
-# Задать общий префикс пути (например, /categories для всех маршрутов категорий).
-# Добавить теги для группировки эндпоинтов в документации (Swagger UI).
-# Настроить зависимости (например, проверка аутентификации для всех маршрутов).
-# Разделить логику на модули, чтобы разработчики могли работать над разными частями проекта независимо.
 
-
-# Создаем маршрутизатор для категорий товаров APIRouter с префиксом и тегом
-# Все эндпоинты в этом файле начинаются с prefix Например, @router.get("/") станет /categories/
-# В Swagger UI эти эндпоинты будут сгруппированы под заголовком "categories".
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
@@ -28,9 +18,6 @@ async def get_all_categories(db: AsyncSession = Depends(get_async_db)):
     """
     Возвращает список всех активных категорий товаров.
     """
-    # Метод db.scalars() в AsyncSession возвращает корутину, которая выполняет SQL-запрос асинхронно и возвращает объект ScalarResult,
-    # содержащий скалярные значения (например, объекты CategoryModel). await ожидает завершения запроса, позволяя событийному циклу обрабатывать другие задачи,
-    # пока PostgreSQL выполняет запрос. После await мы получаем ScalarResult, на котором можно вызвать all() для получения списка объектов.
     result = await db.scalars(select(CategoryModel).where(CategoryModel.is_active == True))
     categories = result.all()
     return categories
@@ -43,29 +30,18 @@ async def create_category(category: CategoryCreateSchema,
     """
     Создает новую категорию.
     """
-    # методы, такие как db.scalars(), db.commit(),  db.refresh(), db.execute(), являются асинхронными, что значит,
-    # что их вызов возвращает корутину (объект, который может быть awaited), а не результат.
-    # await заставляет код приостановиться, пока операция не завершится, но без блокировки всего потока
-    # Проверка существования parent_id, если указан
+    # db.scalars(), db.commit(),  db.refresh(), db.execute(), являются асинхронными
     if category.parent_id is not None:
         stmt = select(CategoryModel).where(CategoryModel.id == category.parent_id, CategoryModel.is_active == True)
-        # Важно всегда использовать await перед db.scalars() в асинхронных сессиях БД
         result = await db.scalars(stmt)
-        # await заставляет код приостановиться, пока операция не завершится, но без блокировки всего потока.
         parent = result.first()
         if parent is None:
             raise HTTPException(status_code=400, detail="Parent category not found")
 
-    # Создание новой категории
     db_category = CategoryModel(**category.model_dump())
     db.add(db_category)
     await db.commit()
-    # await db.refresh(db_category)
-    # await db.refresh(db_category) пока не нужен, так как expire_on_commit=False предотвращает истечение (expiration) объекта db_category после коммита,
-    # и данные объекта остаются актуальными.
-    # Вы можете безопасно вернуть db_category без дополнительного вызова refresh
-    # лучше всегда использовать await db.refresh(obj),
-    # особенно когда нам важно гарантированно вернуть актуальное состояние именно из базы после коммита
+    await db.refresh(db_category)
     return db_category
 
 
@@ -77,7 +53,6 @@ async def update_category(category_id: int,
     """
     Обновляет категорию по её ID
     """
-    # Проверяем существование категории
     stmt = select(CategoryModel).where(CategoryModel.id == category_id, CategoryModel.is_active == True)
     result = await db.scalars(stmt)
     db_category = result.first()
@@ -85,7 +60,6 @@ async def update_category(category_id: int,
     if db_category is None:
         raise HTTPException(status_code=404, detail="Category not found")
 
-    # Проверяем parent_id, если указан
     if category.parent_id is not None:
         parent_stmt = select(CategoryModel).where(CategoryModel.id == category.parent_id,
                                                   CategoryModel.is_active == True)
@@ -97,7 +71,6 @@ async def update_category(category_id: int,
         if parent.id == category_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category cannot be its own parent")
 
-    # Обновляем категорию
     # параметр exclude_unset=True обновляет только переданные поля
     update_data = category.model_dump(exclude_unset=True)
     await db.execute(
@@ -106,7 +79,7 @@ async def update_category(category_id: int,
         .values(**update_data)
     )
     await db.commit()
-    # db.refresh(db_category)
+    await db.refresh(db_category)
     return db_category
 
 
