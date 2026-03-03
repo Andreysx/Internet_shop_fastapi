@@ -6,10 +6,8 @@ from app.routers import categories, products, users, reviews, cart, orders, paym
 # Основной файл проекта - точка входа
 
 
-# Создаем приложение FastфAPI
 app = FastAPI(title="FastAPI Интернет-магазин", version="0.1.0", description="Приложение Интернет-магазин на FastAPI")
 
-# Подключаем маршруты при помощи метода include_router()
 app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(users.router)
@@ -21,7 +19,6 @@ app.include_router(payments.router)
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
 
-# Корневой эндпоинт для проверки
 @app.get(path="/")
 async def root():
     """

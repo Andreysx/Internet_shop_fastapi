@@ -10,16 +10,13 @@ from app.models.users import User as UserModel
 from app.config import SECRET_KEY, ALGORITHM
 from app.db_depends import get_async_db
 
-# Создаём контекст для хеширования с использованием bcrypt
+# Контекст для хеширования с использованием bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
-# время действия токена (ACCESS_TOKEN_EXPIRE_MINUTES) ограничивает период, в течение которого токен может быть использован
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
-
-
-# создаём объект OAuth2, который указывает, что эндпоинт логина находится по адресу /users/token. FastAPI ожидает токен в заголовке Authorization: Bearer для защищённых эндпоинтов.
 
 
 def hash_password(password: str) -> str:

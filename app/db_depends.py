@@ -5,7 +5,7 @@ from collections.abc import Generator
 from app.database import SessionLocal
 
 
-##Синхронная сессия
+# --------------- Синхронная сессия -------------------------
 def get_db() -> Generator[Session, None, None]:
     """
     Зависимость для получения сессии базы данных.
@@ -18,7 +18,6 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-# Эта зависимость будет использоваться в эндпоинтах FastAPI через Depends(get_async_db), передавая сессию в обработчики запросов.
 
 # --------------- Асинхронная сессия -------------------------
 
